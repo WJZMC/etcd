@@ -48,6 +48,10 @@ func newUnaryInterceptor(s *etcdserver.EtcdServer) grpc.UnaryServerInterceptor {
 			return nil, rpctypes.ErrGRPCNotCapable
 		}
 
+		if s.IsMemberExist(s.ID()) && s.IsLearner() && !isRPCSupportedForLearner(req) {
+			return nil, rpctypes.ErrGPRCNotSupportedForLearner
+		}
+
 		md, ok := metadata.FromIncomingContext(ctx)
 		if ok {
 			if ks := md[rpctypes.MetadataRequireLeaderKey]; len(ks) > 0 && ks[0] == rpctypes.MetadataHasLeader {
@@ -188,6 +192,10 @@ func newStreamInterceptor(s *etcdserver.EtcdServer) grpc.StreamServerInterceptor
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if !api.IsCapabilityEnabled(api.V3rpcCapability) {
 			return rpctypes.ErrGRPCNotCapable
+		}
+
+		if s.IsMemberExist(s.ID()) && s.IsLearner() { // learner does not support stream RPC
+			return rpctypes.ErrGPRCNotSupportedForLearner
 		}
 
 		md, ok := metadata.FromIncomingContext(ss.Context())

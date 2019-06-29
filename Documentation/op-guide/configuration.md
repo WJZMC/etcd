@@ -1,8 +1,10 @@
-# Configuration flags
+---
+title: Configuration flags
+---
 
 etcd is configurable through a configuration file, various command-line flags, and environment variables.
 
-A reusable configuration file is a YAML file made with name and value of one or more command-line flags described below. In order to use this file, specify the file path as a value to the `--config-file` flag. The [sample configuration file][sample-config-file] can be used as a starting point to create a new configuration file as needed.
+A reusable configuration file is a YAML file made with name and value of one or more command-line flags described below. In order to use this file, specify the file path as a value to the `--config-file` flag or `ETCD_CONFIG_FILE` environment variable. The [sample configuration file][sample-config-file] can be used as a starting point to create a new configuration file as needed.
 
 Options set on the command line take precedence over those from the environment. If a configuration file is provided, other command line flags and environment variables will be ignored.
 For example, `etcd --config-file etcd.conf.yml.sample --data-dir /tmp` will ignore the `--data-dir` flag.
@@ -182,7 +184,7 @@ To start etcd automatically using custom settings at startup in Linux, using a [
 
 ### --strict-reconfig-check
 + Reject reconfiguration requests that would cause quorum loss.
-+ default: false
++ default: true
 + env variable: ETCD_STRICT_RECONFIG_CHECK
 
 ### --auto-compaction-retention
@@ -359,7 +361,7 @@ For example, it may panic if other members in the cluster are still alive.
 Follow the instructions when using these flags.
 
 ### --force-new-cluster
-+ Force to create a new one-member cluster. It commits configuration changes forcing to remove all existing members in the cluster and add itself. It needs to be set to [restore a backup][restore].
++ Force to create a new one-member cluster. It commits configuration changes forcing to remove all existing members in the cluster and add itself, but is strongly discouraged. Please review the [disaster recovery][recovery] documentation for preferred v3 recovery procedures.
 + default: false
 + env variable: ETCD_FORCE_NEW_CLUSTER
 
@@ -370,7 +372,7 @@ Follow the instructions when using these flags.
 + default: false
 
 ### --config-file
-+ Load server configuration from a file.
++ Load server configuration from a file. Note that if a configuration file is provided, other command line flags and environment variables will be ignored.
 + default: ""
 + example: [sample configuration file][sample-config-file]
 + env variable: ETCD_CONFIG_FILE
@@ -408,6 +410,11 @@ Follow the instructions when using these flags.
 
 ## Experimental flags
 
+### --experimental-backend-bbolt-freelist-type
++ The freelist type that etcd backend(bboltdb) uses (array and map are supported types).
++ default: array
++ env variable: ETCD_EXPERIMENTAL_BACKEND_BBOLT_FREELIST_TYPE
+
 ### --experimental-corrupt-check-time
 + Duration of time between cluster corruption check passes
 + default: 0s
@@ -423,3 +430,4 @@ Follow the instructions when using these flags.
 [systemd-intro]: http://freedesktop.org/wiki/Software/systemd/
 [tuning]: ../tuning.md#time-parameters
 [sample-config-file]: ../../etcd.conf.yml.sample
+[recovery]: recovery.md#disaster-recovery

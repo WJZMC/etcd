@@ -3,7 +3,7 @@
 Previous change logs can be found at [CHANGELOG-3.0](https://github.com/etcd-io/etcd/blob/master/CHANGELOG-3.0.md).
 
 
-The [minimum recommended etcd versions to run in **production**](https://groups.google.com/d/msg/etcd-dev/nZQl17RjxHQ/FkC_rZ_4AwAJT) is 3.1.11+, 3.2.10+, and 3.3.0+.
+The minimum recommended etcd versions to run in **production** are 3.1.11+, 3.2.26+, and 3.3.11+.
 
 
 <hr>
@@ -13,6 +13,15 @@ The [minimum recommended etcd versions to run in **production**](https://groups.
 ### etcdctl
 
 - [Strip out insecure endpoints from DNS SRV records when using discovery](https://github.com/etcd-io/etcd/pull/10443) with etcdctl v2
+- Add [`etcdctl endpoint health --write-out` support](https://github.com/etcd-io/etcd/pull/9540).
+  - Previously, [`etcdctl endpoint health --write-out json` did not work](https://github.com/etcd-io/etcd/issues/9532).
+  - The command output is changed. Previously, if endpoint is unreachable, the command output is
+  "\<endpoint\> is unhealthy: failed to connect: \<error message\>". This change unified the error message, all error types
+  now have the same output "\<endpoint\> is unhealthy: failed to commit proposal: \<error message\>".
+
+### Metrics, Monitoring
+
+- Fix bug where [db_compaction_total_duration_milliseconds metric incorrectly measured duration as 0](https://github.com/etcd-io/etcd/pull/10646).
 
 <hr>
 
@@ -29,7 +38,7 @@ See [code changes](https://github.com/etcd-io/etcd/compare/v3.1.19...v3.1.20) an
 
 ### Metrics, Monitoring
 
-See [List of metrics](https://etcd.readthedocs.io/en/latest/operate.html#v3-1) for all metrics per release.
+See [List of metrics](https://etcd.io/docs/v3.1.12/metrics/) for all metrics per release.
 
 Note that any `etcd_debugging_*` metrics are experimental and subject to change.
 
@@ -71,7 +80,7 @@ See [code changes](https://github.com/etcd-io/etcd/compare/v3.1.18...v3.1.19) an
 
 ### Metrics, Monitoring
 
-See [List of metrics](https://etcd.readthedocs.io/en/latest/operate.html#v3-1) for all metrics per release.
+See [List of metrics](https://etcd.io/docs/v3.1.12/metrics/) for all metrics per release.
 
 Note that any `etcd_debugging_*` metrics are experimental and subject to change.
 
@@ -111,7 +120,7 @@ See [code changes](https://github.com/etcd-io/etcd/compare/v3.1.17...v3.1.18) an
 
 ### Metrics, Monitoring
 
-See [List of metrics](https://etcd.readthedocs.io/en/latest/operate.html#v3-1) for all metrics per release.
+See [List of metrics](https://etcd.io/docs/v3.1.12/metrics/) for all metrics per release.
 
 Note that any `etcd_debugging_*` metrics are experimental and subject to change.
 
@@ -187,7 +196,7 @@ See [code changes](https://github.com/etcd-io/etcd/compare/v3.1.13...v3.1.14) an
 
 ### Metrics, Monitoring
 
-See [List of metrics](https://etcd.readthedocs.io/en/latest/operate.html#v3-1) for all metrics per release.
+See [List of metrics](https://etcd.io/docs/v3.1.12/metrics/) for all metrics per release.
 
 Note that any `etcd_debugging_*` metrics are experimental and subject to change.
 
@@ -225,7 +234,7 @@ See [code changes](https://github.com/etcd-io/etcd/compare/v3.1.12...v3.1.13) an
 
 ### Metrics, Monitoring
 
-See [List of metrics](https://etcd.readthedocs.io/en/latest/operate.html#v3-1) for all metrics per release.
+See [List of metrics](https://etcd.io/docs/v3.1.12/metrics/) for all metrics per release.
 
 Note that any `etcd_debugging_*` metrics are experimental and subject to change.
 

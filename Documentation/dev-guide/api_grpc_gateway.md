@@ -1,5 +1,6 @@
-
-## Why gRPC gateway
+---
+title: Why gRPC gateway
+---
 
 etcd v3 uses [gRPC][grpc] for its messaging protocol. The etcd project includes a gRPC-based [Go client][go-client] and a command line utility, [etcdctl][etcdctl], for communicating with an etcd cluster through gRPC. For languages with no gRPC support, etcd provides a JSON [gRPC gateway][grpc-gateway]. This gateway serves a RESTful proxy that translates HTTP/JSON requests into gRPC messages.
 
@@ -129,7 +130,7 @@ Generated [Swagger][swagger] API definitions can be found at [rpc.swagger.json][
 [api-ref]: ./api_reference_v3.md
 [go-client]: https://github.com/coreos/etcd/tree/master/clientv3
 [etcdctl]: https://github.com/coreos/etcd/tree/master/etcdctl
-[grpc]: http://www.grpc.io/
+[grpc]: https://www.grpc.io/
 [grpc-gateway]: https://github.com/grpc-ecosystem/grpc-gateway
 [json-mapping]: https://developers.google.com/protocol-buffers/docs/proto3#json
 [swagger]: http://swagger.io/

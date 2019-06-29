@@ -39,7 +39,7 @@ func TestOldHealthBalancerGetUnblocking(t *testing.T) {
 	unblockingOpts := grpc.BalancerGetOptions{BlockingWait: false}
 
 	_, _, err := hb.Get(context.Background(), unblockingOpts)
-	if err != ErrNoAddrAvilable {
+	if err != ErrNoAddrAvailable {
 		t.Errorf("Get() with no up endpoints should return ErrNoAddrAvailable, got: %v", err)
 	}
 
@@ -69,7 +69,7 @@ func TestOldHealthBalancerGetUnblocking(t *testing.T) {
 	}
 	down2(errors.New("error"))
 	_, _, err = hb.Get(context.Background(), unblockingOpts)
-	if err != ErrNoAddrAvilable {
+	if err != ErrNoAddrAvailable {
 		t.Errorf("Get() with no up endpoints should return ErrNoAddrAvailable, got: %v", err)
 	}
 }
@@ -281,7 +281,7 @@ func (kcl *killConnListener) listen(l net.Listener) {
 			default:
 			}
 			if err != nil {
-				kcl.t.Fatal(err)
+				kcl.t.Error(err)
 			}
 			time.Sleep(1 * time.Millisecond)
 			conn.Close()

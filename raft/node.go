@@ -353,15 +353,15 @@ func (n *node) run(r *raft) {
 			}
 		case m := <-n.recvc:
 			// filter out response message from unknown From.
-			if pr := r.getProgress(m.From); pr != nil || !IsResponseMsg(m.Type) {
+			if pr := r.prs.Progress[m.From]; pr != nil || !IsResponseMsg(m.Type) {
 				r.Step(m)
 			}
 		case cc := <-n.confc:
 			if cc.NodeID == None {
 				select {
 				case n.confstatec <- pb.ConfState{
-					Nodes:    r.nodes(),
-					Learners: r.learnerNodes()}:
+					Nodes:    r.prs.VoterNodes(),
+					Learners: r.prs.LearnerNodes()}:
 				case <-n.done:
 				}
 				break
@@ -384,8 +384,8 @@ func (n *node) run(r *raft) {
 			}
 			select {
 			case n.confstatec <- pb.ConfState{
-				Nodes:    r.nodes(),
-				Learners: r.learnerNodes()}:
+				Nodes:    r.prs.VoterNodes(),
+				Learners: r.prs.LearnerNodes()}:
 			case <-n.done:
 			}
 		case <-n.tickc:
@@ -504,9 +504,9 @@ func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) 
 		return ErrStopped
 	}
 	select {
-	case rsp := <-pm.result:
-		if rsp != nil {
-			return rsp
+	case err := <-pm.result:
+		if err != nil {
+			return err
 		}
 	case <-ctx.Done():
 		return ctx.Err()

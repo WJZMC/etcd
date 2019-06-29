@@ -38,7 +38,7 @@ import (
 const snapSuffix = ".snap"
 
 var (
-	plog = capnslog.NewPackageLogger("go.etcd.io/etcd", "snap")
+	plog = capnslog.NewPackageLogger("go.etcd.io/etcd/v3", "snap")
 
 	ErrNoSnapshot    = errors.New("snap: no available snapshot")
 	ErrEmptySnapshot = errors.New("snap: empty snapshot")

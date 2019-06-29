@@ -16,12 +16,55 @@ package raft
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
 
 	"go.etcd.io/etcd/raft/raftpb"
+	"go.etcd.io/etcd/raft/tracker"
 )
+
+// rawNodeAdapter is essentially a lint that makes sure that RawNode implements
+// "most of" Node. The exceptions (some of which are easy to fix) are listed
+// below.
+type rawNodeAdapter struct {
+	*RawNode
+}
+
+var _ Node = (*rawNodeAdapter)(nil)
+
+// Node specifies lead, which is pointless, can just be filled in.
+func (a *rawNodeAdapter) TransferLeadership(ctx context.Context, lead, transferee uint64) {
+	a.RawNode.TransferLeader(transferee)
+}
+
+// Node has a goroutine, RawNode doesn't need this.
+func (a *rawNodeAdapter) Stop() {}
+
+// RawNode returns a *Status.
+func (a *rawNodeAdapter) Status() Status { return *a.RawNode.Status() }
+
+// RawNode takes a Ready. It doesn't really have to do that I think? It can hold on
+// to it internally. But maybe that approach is frail.
+func (a *rawNodeAdapter) Advance() { a.RawNode.Advance(Ready{}) }
+
+// RawNode returns a Ready, not a chan of one.
+func (a *rawNodeAdapter) Ready() <-chan Ready { return nil }
+
+// Node takes more contexts. Easy enough to fix.
+
+func (a *rawNodeAdapter) Campaign(context.Context) error { return a.RawNode.Campaign() }
+func (a *rawNodeAdapter) ReadIndex(_ context.Context, rctx []byte) error {
+	a.RawNode.ReadIndex(rctx)
+	// RawNode swallowed the error in ReadIndex, it probably should not do that.
+	return nil
+}
+func (a *rawNodeAdapter) Step(_ context.Context, m raftpb.Message) error { return a.RawNode.Step(m) }
+func (a *rawNodeAdapter) Propose(_ context.Context, data []byte) error   { return a.RawNode.Propose(data) }
+func (a *rawNodeAdapter) ProposeConfChange(_ context.Context, cc raftpb.ConfChange) error {
+	return a.RawNode.ProposeConfChange(cc)
+}
 
 // TestRawNodeStep ensures that RawNode.Step ignore local message.
 func TestRawNodeStep(t *testing.T) {
@@ -596,7 +639,7 @@ func BenchmarkStatusProgress(b *testing.B) {
 
 			b.Run("WithProgress", func(b *testing.B) {
 				b.ReportAllocs()
-				visit := func(uint64, ProgressType, Progress) {}
+				visit := func(uint64, ProgressType, tracker.Progress) {}
 
 				for i := 0; i < b.N; i++ {
 					rn.WithProgress(visit)
@@ -606,7 +649,7 @@ func BenchmarkStatusProgress(b *testing.B) {
 				b.ReportAllocs()
 				for i := 0; i < b.N; i++ {
 					var n uint64
-					visit := func(_ uint64, _ ProgressType, pr Progress) {
+					visit := func(_ uint64, _ ProgressType, pr tracker.Progress) {
 						n += pr.Match
 					}
 					rn.WithProgress(visit)

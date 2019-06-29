@@ -48,7 +48,7 @@ const (
 )
 
 var (
-	plog = capnslog.NewPackageLogger("go.etcd.io/etcd", "etcdserver/auth")
+	plog = capnslog.NewPackageLogger("go.etcd.io/etcd/v3", "etcdserver/auth")
 )
 
 var rootRole = Role{

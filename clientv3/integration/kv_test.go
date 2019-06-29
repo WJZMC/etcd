@@ -463,7 +463,7 @@ func TestKVGetErrConnClosed(t *testing.T) {
 		defer close(donec)
 		_, err := cli.Get(context.TODO(), "foo")
 		if !clientv3.IsConnCanceled(err) {
-			t.Fatalf("expected %v or %v, got %v", context.Canceled, grpc.ErrClientConnClosing, err)
+			t.Errorf("expected %v or %v, got %v", context.Canceled, grpc.ErrClientConnClosing, err)
 		}
 	}()
 
@@ -490,7 +490,7 @@ func TestKVNewAfterClose(t *testing.T) {
 	go func() {
 		_, err := cli.Get(context.TODO(), "foo")
 		if !clientv3.IsConnCanceled(err) {
-			t.Fatalf("expected %v or %v, got %v", context.Canceled, grpc.ErrClientConnClosing, err)
+			t.Errorf("expected %v or %v, got %v", context.Canceled, grpc.ErrClientConnClosing, err)
 		}
 		close(donec)
 	}()
@@ -704,7 +704,7 @@ func TestKVGetRetry(t *testing.T) {
 		// Get will fail, but reconnect will trigger
 		gresp, gerr := kv.Get(ctx, "foo")
 		if gerr != nil {
-			t.Fatal(gerr)
+			t.Error(gerr)
 		}
 		wkvs := []*mvccpb.KeyValue{
 			{
@@ -716,7 +716,7 @@ func TestKVGetRetry(t *testing.T) {
 			},
 		}
 		if !reflect.DeepEqual(gresp.Kvs, wkvs) {
-			t.Fatalf("bad get: got %v, want %v", gresp.Kvs, wkvs)
+			t.Errorf("bad get: got %v, want %v", gresp.Kvs, wkvs)
 		}
 		donec <- struct{}{}
 	}()
@@ -754,10 +754,10 @@ func TestKVPutFailGetRetry(t *testing.T) {
 		// Get will fail, but reconnect will trigger
 		gresp, gerr := kv.Get(context.TODO(), "foo")
 		if gerr != nil {
-			t.Fatal(gerr)
+			t.Error(gerr)
 		}
 		if len(gresp.Kvs) != 0 {
-			t.Fatalf("bad get kvs: got %+v, want empty", gresp.Kvs)
+			t.Errorf("bad get kvs: got %+v, want empty", gresp.Kvs)
 		}
 		donec <- struct{}{}
 	}()
@@ -969,5 +969,130 @@ func TestKVLargeRequests(t *testing.T) {
 		}
 
 		clus.Terminate(t)
+	}
+}
+
+// TestKVForLearner ensures learner member only accepts serializable read request.
+func TestKVForLearner(t *testing.T) {
+	defer testutil.AfterTest(t)
+
+	clus := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 3})
+	defer clus.Terminate(t)
+
+	// we have to add and launch learner member after initial cluster was created, because
+	// bootstrapping a cluster with learner member is not supported.
+	clus.AddAndLaunchLearnerMember(t)
+
+	learners, err := clus.GetLearnerMembers()
+	if err != nil {
+		t.Fatalf("failed to get the learner members in cluster: %v", err)
+	}
+	if len(learners) != 1 {
+		t.Fatalf("added 1 learner to cluster, got %d", len(learners))
+	}
+
+	if len(clus.Members) != 4 {
+		t.Fatalf("expecting 4 members in cluster after adding the learner member, got %d", len(clus.Members))
+	}
+	// note:
+	// 1. clus.Members[3] is the newly added learner member, which was appended to clus.Members
+	// 2. we are using member's grpcAddr instead of clientURLs as the endpoint for clientv3.Config,
+	// because the implementation of integration test has diverged from embed/etcd.go.
+	learnerEp := clus.Members[3].GRPCAddr()
+	cfg := clientv3.Config{
+		Endpoints:   []string{learnerEp},
+		DialTimeout: 5 * time.Second,
+		DialOptions: []grpc.DialOption{grpc.WithBlock()},
+	}
+	// this client only has endpoint of the learner member
+	cli, err := clientv3.New(cfg)
+	if err != nil {
+		t.Fatalf("failed to create clientv3: %v", err)
+	}
+	defer cli.Close()
+
+	// wait until learner member is ready
+	<-clus.Members[3].ReadyNotify()
+
+	tests := []struct {
+		op   clientv3.Op
+		wErr bool
+	}{
+		{
+			op:   clientv3.OpGet("foo", clientv3.WithSerializable()),
+			wErr: false,
+		},
+		{
+			op:   clientv3.OpGet("foo"),
+			wErr: true,
+		},
+		{
+			op:   clientv3.OpPut("foo", "bar"),
+			wErr: true,
+		},
+		{
+			op:   clientv3.OpDelete("foo"),
+			wErr: true,
+		},
+		{
+			op:   clientv3.OpTxn([]clientv3.Cmp{clientv3.Compare(clientv3.CreateRevision("foo"), "=", 0)}, nil, nil),
+			wErr: true,
+		},
+	}
+
+	for idx, test := range tests {
+		_, err := cli.Do(context.TODO(), test.op)
+		if err != nil && !test.wErr {
+			t.Errorf("%d: expect no error, got %v", idx, err)
+		}
+		if err == nil && test.wErr {
+			t.Errorf("%d: expect error, got nil", idx)
+		}
+	}
+}
+
+// TestBalancerSupportLearner verifies that balancer's retry and failover mechanism supports cluster with learner member
+func TestBalancerSupportLearner(t *testing.T) {
+	defer testutil.AfterTest(t)
+
+	clus := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 3})
+	defer clus.Terminate(t)
+
+	// we have to add and launch learner member after initial cluster was created, because
+	// bootstrapping a cluster with learner member is not supported.
+	clus.AddAndLaunchLearnerMember(t)
+
+	learners, err := clus.GetLearnerMembers()
+	if err != nil {
+		t.Fatalf("failed to get the learner members in cluster: %v", err)
+	}
+	if len(learners) != 1 {
+		t.Fatalf("added 1 learner to cluster, got %d", len(learners))
+	}
+
+	// clus.Members[3] is the newly added learner member, which was appended to clus.Members
+	learnerEp := clus.Members[3].GRPCAddr()
+	cfg := clientv3.Config{
+		Endpoints:   []string{learnerEp},
+		DialTimeout: 5 * time.Second,
+		DialOptions: []grpc.DialOption{grpc.WithBlock()},
+	}
+	cli, err := clientv3.New(cfg)
+	if err != nil {
+		t.Fatalf("failed to create clientv3: %v", err)
+	}
+	defer cli.Close()
+
+	// wait until learner member is ready
+	<-clus.Members[3].ReadyNotify()
+
+	if _, err := cli.Get(context.Background(), "foo"); err == nil {
+		t.Fatalf("expect Get request to learner to fail, got no error")
+	}
+
+	eps := []string{learnerEp, clus.Members[0].GRPCAddr()}
+	cli.SetEndpoints(eps...)
+	if _, err := cli.Get(context.Background(), "foo"); err != nil {
+		t.Errorf("expect no error (balancer should retry when request to learner fails), got error: %v", err)
 	}
 }

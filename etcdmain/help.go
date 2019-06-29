@@ -35,7 +35,7 @@ var (
     Show the help information about etcd.
 
   etcd --config-file
-    Path to the server configuration file.
+    Path to the server configuration file. Note that if a configuration file is provided, other command line flags and environment variables will be ignored.
 
   etcd gateway
     Run the stateless pass-through etcd TCP connection forwarding proxy.
@@ -200,6 +200,10 @@ Experimental feature:
     Duration of time between cluster corruption check passes.
   --experimental-enable-v2v3 ''
     Serve v2 requests through the v3 backend under a given prefix.
+  --experimental-backend-bbolt-freelist-type
+    ExperimentalBackendFreelistType specifies the type of freelist that boltdb backend uses(array and map are supported types).
+  --experimental-enable-lease-checkpoint
+    ExperimentalEnableLeaseCheckpoint enables primary lessor to persist lease remainingTTL to prevent indefinite auto-renewal of long lived leases.
 
 Unsafe feature:
   --force-new-cluster 'false'

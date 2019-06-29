@@ -196,8 +196,8 @@ func (s *store) HashByRev(rev int64) (hash uint32, currentRev int64, compactRev 
 	keep := s.kvindex.Keep(rev)
 
 	tx := s.b.ReadTx()
-	tx.Lock()
-	defer tx.Unlock()
+	tx.RLock()
+	defer tx.RUnlock()
 	s.mu.RUnlock()
 
 	upper := revision{main: rev + 1}
@@ -354,6 +354,9 @@ func (s *store) restore() error {
 	reportDbTotalSizeInUseInBytesMu.Lock()
 	reportDbTotalSizeInUseInBytes = func() float64 { return float64(b.SizeInUse()) }
 	reportDbTotalSizeInUseInBytesMu.Unlock()
+	reportDbOpenReadTxNMu.Lock()
+	reportDbOpenReadTxN = func() float64 { return float64(b.OpenReadTxN()) }
+	reportDbOpenReadTxNMu.Unlock()
 
 	min, max := newRevBytes(), newRevBytes()
 	revToBytes(revision{main: 1}, min)

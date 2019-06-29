@@ -12,7 +12,10 @@ See [code changes](https://github.com/etcd-io/etcd/compare/v3.3.0...v3.4.0) and 
 
 ### Improved
 
-- Add [Raft learner](TODO).
+- Add Raft learner: [#10725](https://github.com/etcd-io/etcd/pull/10725), [#10727](https://github.com/etcd-io/etcd/pull/10727), [#10730](https://github.com/etcd-io/etcd/pull/10730).
+  - User guide: [runtime-configuration document](https://github.com/etcd-io/etcd/blob/master/Documentation/op-guide/runtime-configuration.md#add-a-new-member-as-learner).
+  - API change: [API reference document](https://github.com/etcd-io/etcd/blob/master/Documentation/dev-guide/api_reference_v3.md).
+  - More details on implementation: [learner design document](https://github.com/etcd-io/etcd/blob/master/docs/server-learner.rst) and [implementation task list](https://github.com/etcd-io/etcd/issues/10537).
 - Rewrite [client balancer](https://github.com/etcd-io/etcd/pull/9860) with [new gRPC balancer interface](https://github.com/etcd-io/etcd/issues/9106).
 - Add [backoff on watch retries on transient errors](https://github.com/etcd-io/etcd/pull/9840).
 - Add [jitter to watch progress notify](https://github.com/etcd-io/etcd/pull/9278) to prevent [spikes in `etcd_network_client_grpc_sent_bytes_total`](https://github.com/etcd-io/etcd/issues/9246).
@@ -50,8 +53,12 @@ See [code changes](https://github.com/etcd-io/etcd/compare/v3.3.0...v3.4.0) and 
 - Improve [index compaction blocking](https://github.com/etcd-io/etcd/pull/9511) by using a copy on write clone to avoid holding the lock for the traversal of the entire index.
 - Update [JWT methods](https://github.com/etcd-io/etcd/pull/9883) to allow for use of any supported signature method/algorithm.
 - Add [Lease checkpointing](https://github.com/etcd-io/etcd/pull/9924) to persist remaining TTLs to the consensus log periodically so that long lived leases progress toward expiry in the presence of leader elections and server restarts.
+  - Enabled by experimental flag "--experimental-enable-lease-checkpoint".
 - Add [gRPC interceptor for debugging logs](https://github.com/etcd-io/etcd/pull/9990); enable `etcd --debug` flag to see per-request debug information.
 - Add [consistency check in snapshot status](https://github.com/etcd-io/etcd/pull/10109). If consistency check on snapshot file fails, `snapshot status` returns `"snapshot file integrity check failed..."` error.
+- Add [`Verify` function to perform corruption check on WAL contents](https://github.com/etcd-io/etcd/pull/10603).
+- Improve [heartbeat send failure logging](https://github.com/etcd-io/etcd/pull/10663).
+- Support [users with no password](https://github.com/etcd-io/etcd/pull/9817) for reducing security risk introduced by leaked password. The users can only be authenticated with CommonName based auth.
 
 ### Breaking Changes
 
@@ -131,9 +138,11 @@ See [code changes](https://github.com/etcd-io/etcd/compare/v3.3.0...v3.4.0) and 
 
 ### Dependency
 
-- Upgrade [`github.com/coreos/bbolt`](https://github.com/etcd-io/bbolt/releases) from [**`v1.3.1-coreos.6`**](https://github.com/etcd-io/bbolt/releases/tag/v1.3.1-coreos.6) to [`go.etcd.io/bbolt`](https://github.com/etcd-io/bbolt/releases) [**`v1.3.1-etcd.7`**](https://github.com/etcd-io/bbolt/releases/tag/v1.3.1-etcd.7).
+- Upgrade [`github.com/coreos/bbolt`](https://github.com/etcd-io/bbolt/releases) from [**`v1.3.1-coreos.6`**](https://github.com/etcd-io/bbolt/releases/tag/v1.3.1-coreos.6) to [`go.etcd.io/bbolt`](https://github.com/etcd-io/bbolt/releases) [**`v1.3.3`**](https://github.com/etcd-io/bbolt/releases/tag/v1.3.3).
 - Upgrade [`google.golang.org/grpc`](https://github.com/grpc/grpc-go/releases) from [**`v1.7.5`**](https://github.com/grpc/grpc-go/releases/tag/v1.7.5) to [**`v1.13.0`**](https://github.com/grpc/grpc-go/releases/tag/v1.13.0).
 - Upgrade [`github.com/golang/protobuf`](https://github.com/golang/protobuf/releases) from [**`golang/protobuf@1e59b77b5`**](https://github.com/golang/protobuf/commit/1e59b77b52bf8e4b449a57e6f79f21226d571845) to [**`v1.1.0`**](https://github.com/golang/protobuf/releases/tag/v1.1.0).
+- Migrate [`github.com/ugorji/go/codec`](https://github.com/ugorji/go/releases) to [**`github.com/json-iterator/go`**](https://github.com/json-iterator/go), to [regenerate v2 `client`](https://github.com/etcd-io/etcd/pull/9494) (See [#10667](https://github.com/etcd-io/etcd/pull/10667) for more).
+- Migrate [`github.com/ghodss/yaml`](https://github.com/ghodss/yaml/releases) to [**`sigs.k8s.io/yaml`**](https://github.com/kubernetes-sigs/yaml) (See [#10687](https://github.com/etcd-io/etcd/pull/10687) for more).
 - Upgrade [`golang.org/x/crypto`](https://github.com/golang/crypto) from [**`crypto@9419663f5`**](https://github.com/golang/crypto/commit/9419663f5a44be8b34ca85f08abc5fe1be11f8a3) to [**`crypto@8ac0e0d97`**](https://github.com/golang/crypto/commit/8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9).
 - Upgrade [`golang.org/x/net`](https://github.com/golang/net) from [**`net@66aacef3d`**](https://github.com/golang/net/commit/66aacef3dd8a676686c7ae3716979581e8b03c47) to [**`net@db08ff08e`**](https://github.com/golang/net/commit/db08ff08e8622530d9ed3a0e8ac279f6d4c02196).
 - Upgrade [`golang.org/x/sys`](https://github.com/golang/sys) from [**`sys@ebfc5b463`**](https://github.com/golang/sys/commit/ebfc5b4631820b793c9010c87fd8fef0f39eb082) to [**`sys@56ede360e`**](https://github.com/golang/sys/commit/56ede360ec1c541828fb88741b3f1049406d28f5).
@@ -142,7 +151,6 @@ See [code changes](https://github.com/etcd-io/etcd/compare/v3.3.0...v3.4.0) and 
 - Upgrade [`github.com/golang/protobuf`](https://github.com/golang/protobuf/releases) from [**`golang/protobuf@1e59b77b5`**](https://github.com/golang/protobuf/commit/1e59b77b52bf8e4b449a57e6f79f21226d571845) to [**`v1.1.0`**](https://github.com/golang/protobuf/releases/tag/v1.1.0).
 - Upgrade [`gopkg.in/yaml.v2`](https://github.com/go-yaml/yaml/releases) from [**`yaml@cd8b52f82`**](https://github.com/go-yaml/yaml/commit/cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b) to [**`yaml@5420a8b67`**](https://github.com/go-yaml/yaml/commit/5420a8b6744d3b0345ab293f6fcba19c978f1183).
 - Upgrade [`github.com/dgrijalva/jwt-go`](https://github.com/dgrijalva/jwt-go/releases) from [**`v3.0.0`**](https://github.com/dgrijalva/jwt-go/releases/tag/v3.0.0) to [**`v3.2.0`**](https://github.com/dgrijalva/jwt-go/releases/tag/v3.2.0).
-- Upgrade [`github.com/ugorji/go/codec`](https://github.com/ugorji/go/releases) to [**`v1.1.1`**](https://github.com/ugorji/go/releases/tag/v1.1.1), and [regenerate v2 `client`](https://github.com/etcd-io/etcd/pull/9494).
 - Upgrade [`github.com/soheilhy/cmux`](https://github.com/soheilhy/cmux/releases) from [**`v0.1.3`**](https://github.com/soheilhy/cmux/releases/tag/v0.1.3) to [**`v0.1.4`**](https://github.com/soheilhy/cmux/releases/tag/v0.1.4).
 - Upgrade [`github.com/google/btree`](https://github.com/google/btree/releases) from [**`google/btree@925471ac9`**](https://github.com/google/btree/commit/925471ac9e2131377a91e1595defec898166fe49) to [**`google/btree@e89373fe6`**](https://github.com/google/btree/commit/e89373fe6b4a7413d7acd6da1725b83ef713e6e4).
 - Upgrade [`github.com/spf13/cobra`](https://github.com/spf13/cobra/releases) from [**`spf13/cobra@1c44ec8d3`**](https://github.com/spf13/cobra/commit/1c44ec8d3f1552cac48999f9306da23c4d8a288b) to [**`v0.0.3`**](https://github.com/spf13/cobra/releases/tag/v0.0.3).
@@ -153,8 +161,6 @@ See [code changes](https://github.com/etcd-io/etcd/compare/v3.3.0...v3.4.0) and 
 - Upgrade [`github.com/grpc-ecosystem/grpc-gateway`](https://github.com/grpc-ecosystem/grpc-gateway/releases) from [**`v1.3.1`**](https://github.com/grpc-ecosystem/grpc-gateway/releases/tag/v1.3.1) to [**`v1.4.1`**](https://github.com/grpc-ecosystem/grpc-gateway/releases/tag/v1.4.1).
 
 ### Metrics, Monitoring
-
-See [List of metrics](https://etcd.readthedocs.io/en/latest/operate.html#latest) for all metrics per release.
 
 Note that any `etcd_debugging_*` metrics are experimental and subject to change.
 
@@ -215,12 +221,18 @@ Note that any `etcd_debugging_*` metrics are experimental and subject to change.
 - Add [`etcd_debugging_lease_revoked_total`](https://github.com/etcd-io/etcd/pull/9778) Prometheus metric.
 - Add [`etcd_debugging_lease_renewed_total`](https://github.com/etcd-io/etcd/pull/9778) Prometheus metric.
 - Add [`etcd_debugging_lease_ttl_total`](https://github.com/etcd-io/etcd/pull/9778) Prometheus metric.
+- Add [`etcd_server_is_learner`](https://github.com/etcd-io/etcd/pull/10731) Prometheus metric.
+- Add [`etcd_server_learner_promote_failures`](https://github.com/etcd-io/etcd/pull/10731) Prometheus metric.
+- Add [`etcd_server_learner_promote_successes`](https://github.com/etcd-io/etcd/pull/10731) Prometheus metric.
 - Increase [`etcd_debugging_mvcc_index_compaction_pause_duration_milliseconds`](https://github.com/etcd-io/etcd/pull/9762) Prometheus metric histogram upper-bound.
   - Previously, highest bucket only collects requests taking 1.024 seconds or more.
   - Now, highest buckets collect 1.024 seconds, 2.048 seconds, and 4.096 seconds or more.
 - Fix missing [`etcd_network_peer_sent_failures_total`](https://github.com/etcd-io/etcd/pull/9437) Prometheus metric count.
 - Fix [`etcd_debugging_server_lease_expired_total`](https://github.com/etcd-io/etcd/pull/9557) Prometheus metric.
 - Fix [race conditions in v2 server stat collecting](https://github.com/etcd-io/etcd/pull/9562).
+- Change [gRPC proxy to expose etcd server endpoint /metrics](https://github.com/etcd-io/etcd/pull/10618).
+  - The metrics that were exposed via the proxy were not etcd server members but instead the proxy itself.
+- Fix bug where [db_compaction_total_duration_milliseconds metric incorrectly measured duration as 0](https://github.com/etcd-io/etcd/pull/10646).
 
 ### Security, Authentication
 
@@ -335,6 +347,8 @@ See [security doc](https://github.com/etcd-io/etcd/blob/master/Documentation/op-
 
 ### API
 
+- Add `isLearner` field to `etcdserverpb.Member`, `etcdserverpb.MemberAddRequest` and `etcdserverpb.StatusResponse` as part of [raft learner implementation](https://github.com/etcd-io/etcd/pull/10725).
+- Add `MemberPromote` rpc to `etcdserverpb.Cluster` interface and the corresponding `MemberPromoteRequest` and `MemberPromoteResponse` as part of [raft learner implementation](https://github.com/etcd-io/etcd/pull/10725).
 - Add [`snapshot`](https://github.com/etcd-io/etcd/pull/9118) package for snapshot restore/save operations (see [`godoc.org/github.com/etcd/clientv3/snapshot`](https://godoc.org/github.com/coreos/etcd/clientv3/snapshot) for more).
 - Add [`watch_id` field to `etcdserverpb.WatchCreateRequest`](https://github.com/etcd-io/etcd/pull/9065) to allow user-provided watch ID to `mvcc`.
   - Corresponding `watch_id` is returned via `etcdserverpb.WatchResponse`, if any.
@@ -382,6 +396,8 @@ Note: **v3.5 will deprecate `etcd --log-package-levels` flag for `capnslog`**; `
 
 ### client v3
 
+- Add [`MemberAddAsLearner`](https://github.com/etcd-io/etcd/pull/10725) to `Clientv3.Cluster` interface. This API is used to add a learner member to etcd cluster.
+- Add [`MemberPromote`](https://github.com/etcd-io/etcd/pull/10727) to `Clientv3.Cluster` interface. This API is used to promote a learner member in etcd cluster.
 - Client may receive [`rpctypes.ErrLeaderChanged`](https://github.com/etcd-io/etcd/pull/10094) from server.
   - Now linearizable requests with read index would fail fast when there is a leadership change, instead of waiting until context timeout.
 - Add [`WithFragment` `OpOption`](https://github.com/etcd-io/etcd/pull/9291) to support [watch events fragmentation](https://github.com/etcd-io/etcd/issues/9294) when the total size of events exceeds `etcd --max-request-bytes` flag value plus gRPC-overhead 512 bytes.
@@ -401,12 +417,14 @@ Note: **v3.5 will deprecate `etcd --log-package-levels` flag for `capnslog`**; `
   - By setting `PermitWithoutStream` to true, client can send keepalive pings to server without any active streams(RPCs). In other words, it allows sending keepalive pings with unary or simple RPC calls.
   - `PermitWithoutStream` is set to false by default.
 - Fix logic on [release lock key if cancelled](https://github.com/etcd-io/etcd/pull/10153) in `clientv3/concurrency` package.
+- Fix [`(*Client).Endpoints()` method race condition](https://github.com/etcd-io/etcd/pull/10595).
 
 ### etcdctl v3
 
 - Make [`ETCDCTL_API=3 etcdctl` default](https://github.com/etcd-io/etcd/issues/9600).
   - Now, `etcdctl set foo bar` must be `ETCDCTL_API=2 etcdctl set foo bar`.
   - Now, `ETCDCTL_API=3 etcdctl put foo bar` could be just `etcdctl put foo bar`.
+- Add [`etcdctl member add --learner` and `etcdctl member promote`](https://github.com/etcd-io/etcd/pull/10725) to add and promote raft learner member in etcd cluster.
 - Add [`etcdctl --password`](https://github.com/etcd-io/etcd/pull/9730) flag.
   - To support [`:` character in user name](https://github.com/etcd-io/etcd/issues/9691).
   - e.g. `etcdctl --user user --password password get foo`
@@ -438,6 +456,8 @@ Note: **v3.5 will deprecate `etcd --log-package-levels` flag for `capnslog`**; `
   - Especially, gRPC proxy was affected, since it detects a leader loss with a key `"proxy-namespace__lostleader"` and a watch revision `"int64(math.MaxInt64 - 2)"`.
   - Now, this server-side panic has been fixed.
 - Fix [memory leak in cache layer](https://github.com/etcd-io/etcd/pull/10327).
+- Change [gRPC proxy to expose etcd server endpoint /metrics](https://github.com/etcd-io/etcd/pull/10618).
+  - The metrics that were exposed via the proxy were not etcd server members but instead the proxy itself.
 
 ### gRPC gateway
 
@@ -468,6 +488,15 @@ Note: **v3.5 will deprecate `etcd --log-package-levels` flag for `capnslog`**; `
 - Optimize [message send flow control](https://github.com/etcd-io/etcd/pull/9985).
   - Leader now sends more append entries if it has more non-empty entries to send after updating flow control information.
   - Now, Raft allows multiple in-flight append messages.
+- Optimize [memory allocation when boxing slice in `maybeCommit`](https://github.com/etcd-io/etcd/pull/10679).
+  - By boxing a heap-allocated slice header instead of the slice header on the stack, we can avoid an allocation when passing through the sort.Interface interface.
+- Avoid [memory allocation in Raft entry `String` method](https://github.com/etcd-io/etcd/pull/10680).
+- Avoid [multiple memory allocations when merging stable and unstable log](https://github.com/etcd-io/etcd/pull/10684).
+- Extract [progress tracking into own component](https://github.com/etcd-io/etcd/pull/10683).
+
+### Package `wal`
+
+- Add [`Verify` function to perform corruption check on WAL contents](https://github.com/etcd-io/etcd/pull/10603).
 
 ### Tooling
 

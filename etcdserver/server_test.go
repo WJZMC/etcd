@@ -508,35 +508,57 @@ func TestApplyConfChangeError(t *testing.T) {
 	}
 	cl.RemoveMember(4)
 
+	attr := membership.RaftAttributes{PeerURLs: []string{fmt.Sprintf("http://127.0.0.1:%d", 1)}}
+	ctx, err := json.Marshal(&membership.Member{ID: types.ID(1), RaftAttributes: attr})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	attr = membership.RaftAttributes{PeerURLs: []string{fmt.Sprintf("http://127.0.0.1:%d", 4)}}
+	ctx4, err := json.Marshal(&membership.Member{ID: types.ID(1), RaftAttributes: attr})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	attr = membership.RaftAttributes{PeerURLs: []string{fmt.Sprintf("http://127.0.0.1:%d", 5)}}
+	ctx5, err := json.Marshal(&membership.Member{ID: types.ID(1), RaftAttributes: attr})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tests := []struct {
 		cc   raftpb.ConfChange
 		werr error
 	}{
 		{
 			raftpb.ConfChange{
-				Type:   raftpb.ConfChangeAddNode,
-				NodeID: 4,
+				Type:    raftpb.ConfChangeAddNode,
+				NodeID:  4,
+				Context: ctx4,
 			},
 			membership.ErrIDRemoved,
 		},
 		{
 			raftpb.ConfChange{
-				Type:   raftpb.ConfChangeUpdateNode,
-				NodeID: 4,
+				Type:    raftpb.ConfChangeUpdateNode,
+				NodeID:  4,
+				Context: ctx4,
 			},
 			membership.ErrIDRemoved,
 		},
 		{
 			raftpb.ConfChange{
-				Type:   raftpb.ConfChangeAddNode,
-				NodeID: 1,
+				Type:    raftpb.ConfChangeAddNode,
+				NodeID:  1,
+				Context: ctx,
 			},
 			membership.ErrIDExists,
 		},
 		{
 			raftpb.ConfChange{
-				Type:   raftpb.ConfChangeRemoveNode,
-				NodeID: 5,
+				Type:    raftpb.ConfChangeRemoveNode,
+				NodeID:  5,
+				Context: ctx5,
 			},
 			membership.ErrIDNotFound,
 		},
@@ -553,7 +575,7 @@ func TestApplyConfChangeError(t *testing.T) {
 		if err != tt.werr {
 			t.Errorf("#%d: applyConfChange error = %v, want %v", i, err, tt.werr)
 		}
-		cc := raftpb.ConfChange{Type: tt.cc.Type, NodeID: raft.None}
+		cc := raftpb.ConfChange{Type: tt.cc.Type, NodeID: raft.None, Context: tt.cc.Context}
 		w := []testutil.Action{
 			{
 				Name:   "ApplyConfChange",
@@ -973,7 +995,7 @@ func TestSnapshot(t *testing.T) {
 		defer func() { ch <- struct{}{} }()
 
 		if len(gaction) != 1 {
-			t.Fatalf("len(action) = %d, want 1", len(gaction))
+			t.Errorf("len(action) = %d, want 1", len(gaction))
 		}
 		if !reflect.DeepEqual(gaction[0], testutil.Action{Name: "SaveSnap"}) {
 			t.Errorf("action = %s, want SaveSnap", gaction[0])
@@ -985,7 +1007,7 @@ func TestSnapshot(t *testing.T) {
 		defer func() { ch <- struct{}{} }()
 
 		if len(gaction) != 2 {
-			t.Fatalf("len(action) = %d, want 2", len(gaction))
+			t.Errorf("len(action) = %d, want 2", len(gaction))
 		}
 		if !reflect.DeepEqual(gaction[0], testutil.Action{Name: "Clone"}) {
 			t.Errorf("action = %s, want Clone", gaction[0])
@@ -1118,7 +1140,7 @@ func TestTriggerSnap(t *testing.T) {
 		// each operation is recorded as a Save
 		// (SnapshotCount+1) * Puts + SaveSnap = (SnapshotCount+1) * Save + SaveSnap
 		if len(gaction) != wcnt {
-			t.Fatalf("len(action) = %d, want %d", len(gaction), wcnt)
+			t.Errorf("len(action) = %d, want %d", len(gaction), wcnt)
 		}
 		if !reflect.DeepEqual(gaction[wcnt-1], testutil.Action{Name: "SaveSnap"}) {
 			t.Errorf("action = %s, want SaveSnap", gaction[wcnt-1])

@@ -26,6 +26,7 @@ import (
 	"go.etcd.io/etcd/pkg/transport"
 	"go.etcd.io/etcd/pkg/types"
 
+	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -59,6 +60,9 @@ type ServerConfig struct {
 	BackendBatchInterval time.Duration
 	// BackendBatchLimit is the maximum operations before commit the backend transaction.
 	BackendBatchLimit int
+
+	// BackendFreelistType is the type of the backend boltdb freelist.
+	BackendFreelistType bolt.FreelistType
 
 	InitialPeerURLsMap  types.URLsMap
 	InitialClusterToken string
@@ -146,6 +150,8 @@ type ServerConfig struct {
 
 	ForceNewCluster bool
 
+	// EnableLeaseCheckpoint enables primary lessor to persist lease remainingTTL to prevent indefinite auto-renewal of long lived leases.
+	EnableLeaseCheckpoint bool
 	// LeaseCheckpointInterval time.Duration is the wait duration between lease checkpoints.
 	LeaseCheckpointInterval time.Duration
 

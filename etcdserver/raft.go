@@ -17,6 +17,7 @@ package etcdserver
 import (
 	"encoding/json"
 	"expvar"
+	"fmt"
 	"log"
 	"sort"
 	"sync"
@@ -33,7 +34,6 @@ import (
 	"go.etcd.io/etcd/raft/raftpb"
 	"go.etcd.io/etcd/wal"
 	"go.etcd.io/etcd/wal/walpb"
-
 	"go.uber.org/zap"
 )
 
@@ -58,20 +58,8 @@ var (
 )
 
 func init() {
-	lcfg := &zap.Config{
-		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
-		Development: false,
-		Sampling: &zap.SamplingConfig{
-			Initial:    100,
-			Thereafter: 100,
-		},
-		Encoding:      "json",
-		EncoderConfig: zap.NewProductionEncoderConfig(),
-
-		OutputPaths:      []string{"stderr"},
-		ErrorOutputPaths: []string{"stderr"},
-	}
-	lg, err := logutil.NewRaftLogger(lcfg)
+	lcfg := logutil.DefaultZapLoggerConfig
+	lg, err := logutil.NewRaftLogger(&lcfg)
 	if err != nil {
 		log.Fatalf("cannot create raft logger %v", err)
 	}
@@ -369,12 +357,13 @@ func (r *raftNode) processMessages(ms []raftpb.Message) []raftpb.Message {
 				if r.lg != nil {
 					r.lg.Warn(
 						"leader failed to send out heartbeat on time; took too long, leader is overloaded likely from slow disk",
+						zap.String("to", fmt.Sprintf("%x", ms[i].To)),
 						zap.Duration("heartbeat-interval", r.heartbeat),
 						zap.Duration("expected-duration", 2*r.heartbeat),
 						zap.Duration("exceeded-duration", exceed),
 					)
 				} else {
-					plog.Warningf("failed to send out heartbeat on time (exceeded the %v timeout for %v)", r.heartbeat, exceed)
+					plog.Warningf("failed to send out heartbeat on time (exceeded the %v timeout for %v, to %x)", r.heartbeat, exceed, ms[i].To)
 					plog.Warningf("server is likely overloaded")
 				}
 				heartbeatSendFailures.Inc()
@@ -439,9 +428,9 @@ func startNode(cfg ServerConfig, cl *membership.RaftCluster, ids []types.ID) (id
 	)
 	if w, err = wal.Create(cfg.Logger, cfg.WALDir(), metadata); err != nil {
 		if cfg.Logger != nil {
-			cfg.Logger.Fatal("failed to create WAL", zap.Error(err))
+			cfg.Logger.Panic("failed to create WAL", zap.Error(err))
 		} else {
-			plog.Fatalf("create wal error: %v", err)
+			plog.Panicf("create wal error: %v", err)
 		}
 	}
 	peers := make([]raft.Peer, len(ids))

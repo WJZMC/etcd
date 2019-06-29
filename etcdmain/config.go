@@ -31,8 +31,8 @@ import (
 	"go.etcd.io/etcd/pkg/types"
 	"go.etcd.io/etcd/version"
 
-	"github.com/ghodss/yaml"
 	"go.uber.org/zap"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -127,7 +127,7 @@ func newConfig() *config {
 		fmt.Fprintln(os.Stderr, usageline)
 	}
 
-	fs.StringVar(&cfg.configFile, "config-file", "", "Path to the server configuration file")
+	fs.StringVar(&cfg.configFile, "config-file", "", "Path to the server configuration file. Note that if a configuration file is provided, other command line flags and environment variables will be ignored.")
 
 	// member
 	fs.StringVar(&cfg.ec.Dir, "data-dir", cfg.ec.Dir, "Path to the data directory.")
@@ -248,6 +248,8 @@ func newConfig() *config {
 	fs.BoolVar(&cfg.ec.ExperimentalInitialCorruptCheck, "experimental-initial-corrupt-check", cfg.ec.ExperimentalInitialCorruptCheck, "Enable to check data corruption before serving any client/peer traffic.")
 	fs.DurationVar(&cfg.ec.ExperimentalCorruptCheckTime, "experimental-corrupt-check-time", cfg.ec.ExperimentalCorruptCheckTime, "Duration of time between cluster corruption check passes.")
 	fs.StringVar(&cfg.ec.ExperimentalEnableV2V3, "experimental-enable-v2v3", cfg.ec.ExperimentalEnableV2V3, "v3 prefix for serving emulated v2 state.")
+	fs.StringVar(&cfg.ec.ExperimentalBackendFreelistType, "experimental-backend-bbolt-freelist-type", cfg.ec.ExperimentalBackendFreelistType, "ExperimentalBackendFreelistType specifies the type of freelist that boltdb backend uses(array and map are supported types)")
+	fs.BoolVar(&cfg.ec.ExperimentalEnableLeaseCheckpoint, "experimental-enable-lease-checkpoint", false, "Enable to persist lease remaining TTL to prevent indefinite auto-renewal of long lived leases.")
 
 	// unsafe
 	fs.BoolVar(&cfg.ec.ForceNewCluster, "force-new-cluster", false, "Force to create a new one member cluster.")
@@ -282,6 +284,14 @@ func (cfg *config) parse(arguments []string) error {
 	}
 
 	var err error
+
+	// This env variable must be parsed separately
+	// because we need to determine whether to use or
+	// ignore the env variables based on if the config file is set.
+	if cfg.configFile == "" {
+		cfg.configFile = os.Getenv(flags.FlagToEnv("ETCD", "config-file"))
+	}
+
 	if cfg.configFile != "" {
 		err = cfg.configFromFile(cfg.configFile)
 		if lg := cfg.ec.GetLogger(); lg != nil {

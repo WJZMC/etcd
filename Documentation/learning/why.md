@@ -1,4 +1,6 @@
-# etcd versus other key-value stores
+---
+title: etcd versus other key-value stores
+---
 
 The name "etcd" originated from two ideas, the unix "/etc" folder and "d"istributed systems. The "/etc" folder is a place to store configuration data for a single system whereas etcd stores configuration information for large scale distributed systems. Hence, a "d"istributed "/etc" is "etcd".
 
@@ -76,7 +78,7 @@ In theory, it’s possible to build these primitives atop any storage systems pr
 For distributed coordination, choosing etcd can help prevent operational headaches and save engineering effort.
 
 [production-users]: ../production-users.md
-[grpc]: http://www.grpc.io
+[grpc]: https://www.grpc.io
 [consul-bulletproof]: https://www.consul.io/docs/internals/sessions.html
 [curator]: http://curator.apache.org/
 [cockroach]: https://github.com/cockroachdb/cockroach
